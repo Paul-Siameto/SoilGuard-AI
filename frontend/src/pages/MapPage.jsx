@@ -67,8 +67,27 @@ export default function MapPage() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="h-[60vh] rounded overflow-hidden border">
+    <div className="space-y-4 animate-fadeIn">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="bg-white rounded-xl p-4 shadow-md hover-lift">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-gray-800">{lands.length}</div>
+              <div className="text-sm text-gray-500">Total Lands</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Map Container */}
+      <div className="h-[60vh] rounded-2xl overflow-hidden border-2 border-gray-200 shadow-xl hover-lift">
         <MapContainer center={defaultCenter} zoom={6} style={{ height: '100%', width: '100%' }}>
           <TileLayer 
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -77,13 +96,30 @@ export default function MapPage() {
           {lands.filter(l => l.latitude && l.longitude && !isNaN(l.latitude) && !isNaN(l.longitude)).map((l) => (
             <Marker key={l.id} position={[Number(l.latitude), Number(l.longitude)]}>
               <Popup>
-                <div className="space-y-1">
-                  <div className="font-semibold">{l.name}</div>
-                  <div className="text-sm text-gray-600">{l.latitude}, {l.longitude}</div>
-                  <div className="text-sm">Soil: {l.soil_health || 'n/a'}</div>
-                  <div className="flex gap-2 mt-2">
-                    <button className="text-blue-600 text-xs underline" onClick={() => setEditing(l)}>Edit</button>
-                    <button className="text-red-600 text-xs underline" onClick={() => deleteLand(l.id)}>Delete</button>
+                <div className="space-y-2 p-2">
+                  <div className="font-bold text-lg text-green-700">{l.name}</div>
+                  <div className="text-xs text-gray-500 flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    </svg>
+                    {l.latitude}, {l.longitude}
+                  </div>
+                  <div className="text-sm bg-green-50 px-2 py-1 rounded">
+                    <span className="font-medium">Soil:</span> {l.soil_health || 'n/a'}
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <button 
+                      className="flex-1 bg-blue-500 text-white text-xs px-3 py-1.5 rounded hover:bg-blue-600 transition-all" 
+                      onClick={() => setEditing(l)}
+                    >
+                      Edit
+                    </button>
+                    <button 
+                      className="flex-1 bg-red-500 text-white text-xs px-3 py-1.5 rounded hover:bg-red-600 transition-all" 
+                      onClick={() => deleteLand(l.id)}
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               </Popup>
@@ -92,14 +128,34 @@ export default function MapPage() {
         </MapContainer>
       </div>
 
-      <button onClick={() => setShowForm(true)} className="fixed bottom-6 right-6 bg-green-600 text-white rounded-full px-5 py-3 shadow">
-        + Add Land
+      {/* Floating Add Button */}
+      <button 
+        onClick={() => setShowForm(true)} 
+        className="fixed bottom-8 right-8 gradient-green text-white rounded-full px-6 py-4 shadow-2xl hover:shadow-3xl transform hover:scale-110 transition-all duration-300 flex items-center gap-2 font-semibold animate-pulse-slow"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+        Add Land
       </button>
 
+      {/* Modal */}
       {(showForm || editing) && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-4">
-          <div className="bg-white rounded p-4 w-full max-w-md">
-            <h2 className="text-lg font-semibold mb-2">{editing ? 'Edit Land' : 'Add Land'}</h2>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl animate-scaleIn">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-gray-800">
+                {editing ? '✏️ Edit Land' : '➕ Add New Land'}
+              </h2>
+              <button 
+                onClick={() => { setShowForm(false); setEditing(null); }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
             <LandForm
               initial={editing}
               onSubmit={(payload) => editing ? updateLand(editing.id, payload) : addLand(payload)}
