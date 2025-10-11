@@ -12,17 +12,35 @@ export default function Signup() {
   const handleSignup = async (e) => {
     e.preventDefault();
     setError('');
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    
+    // Sign up with metadata
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          username: username
+        }
+      }
+    });
+    
     if (error) return setError(error.message);
+    
     const user = data.user;
-    if (user) {
-      // Insert profile row
+    const session = data.session;
+    
+    if (user && session) {
+      // Insert profile row (user is now authenticated)
       const { error: profErr } = await supabase
         .from('profiles')
         .insert([{ id: user.id, username, email }]);
       if (profErr) return setError(profErr.message);
+      
+      navigate('/dashboard');
+    } else {
+      // Email confirmation required
+      setError('Please check your email to confirm your account.');
     }
-    navigate('/dashboard');
   };
 
   return (

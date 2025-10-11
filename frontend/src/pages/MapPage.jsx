@@ -5,9 +5,13 @@ import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext.jsx';
 import LandForm from '../components/LandForm.jsx';
 
-// Fix default icon path for Leaflet in Vite
-import 'leaflet/dist/images/marker-icon.png';
-import 'leaflet/dist/images/marker-shadow.png';
+// Fix Leaflet default icon issue with Vite
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
 
 const defaultCenter = [0.0236, 37.9062]; // Kenya-ish center
 
@@ -34,7 +38,10 @@ export default function MapPage() {
     const { error } = await supabase
       .from('land_data')
       .insert([{ ...payload, user_id: user.id }]);
-    if (!error) {
+    if (error) {
+      console.error('Error adding land:', error);
+      alert('Failed to add land: ' + error.message);
+    } else {
       setShowForm(false);
       fetchLands();
     }
@@ -63,17 +70,20 @@ export default function MapPage() {
     <div className="space-y-4">
       <div className="h-[60vh] rounded overflow-hidden border">
         <MapContainer center={defaultCenter} zoom={6} style={{ height: '100%', width: '100%' }}>
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          {lands.map((l) => (
-            <Marker key={l.id} position={[l.latitude, l.longitude]} icon={new L.Icon.Default()}>
+          <TileLayer 
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          />
+          {lands.filter(l => l.latitude && l.longitude && !isNaN(l.latitude) && !isNaN(l.longitude)).map((l) => (
+            <Marker key={l.id} position={[Number(l.latitude), Number(l.longitude)]}>
               <Popup>
                 <div className="space-y-1">
                   <div className="font-semibold">{l.name}</div>
                   <div className="text-sm text-gray-600">{l.latitude}, {l.longitude}</div>
                   <div className="text-sm">Soil: {l.soil_health || 'n/a'}</div>
                   <div className="flex gap-2 mt-2">
-                    <button className="text-blue-600" onClick={() => setEditing(l)}>Edit</button>
-                    <button className="text-red-600" onClick={() => deleteLand(l.id)}>Delete</button>
+                    <button className="text-blue-600 text-xs underline" onClick={() => setEditing(l)}>Edit</button>
+                    <button className="text-red-600 text-xs underline" onClick={() => deleteLand(l.id)}>Delete</button>
                   </div>
                 </div>
               </Popup>

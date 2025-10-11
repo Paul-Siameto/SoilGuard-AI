@@ -6,6 +6,7 @@ import MapPage from './MapPage.jsx';
 import Insights from './Insights.jsx';
 import Assistant from './Assistant.jsx';
 import Payments from './Payments.jsx';
+import Profile from './Profile.jsx';
 import { supabase } from '../supabaseClient';
 
 export default function Dashboard() {
@@ -28,6 +29,7 @@ export default function Dashboard() {
             <Route path="insights" element={<Insights />} />
             <Route path="assistant" element={<Assistant />} />
             <Route path="payments" element={<Payments />} />
+            <Route path="profile" element={<Profile />} />
           </Routes>
         </div>
       </div>
