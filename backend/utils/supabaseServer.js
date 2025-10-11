@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 
 // Server-side Supabase client using the service_role key.

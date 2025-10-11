@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 
 // Helper to verify Supabase JWT from Authorization: Bearer <token>
