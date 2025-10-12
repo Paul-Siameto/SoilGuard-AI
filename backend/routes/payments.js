@@ -9,15 +9,25 @@ const router = express.Router();
 const PAYSTACK_BASE = 'https://api.paystack.co';
 
 // POST /api/payments/initiate
-// Body example: { amount: 5000, type: 'donation' }
+// Body example: { amount: 5000, type: 'donation' | 'pro' }
 router.post('/initiate', requireAuth, async (req, res) => {
   const { amount, type } = req.body || {};
   const userId = req.user.id;
 
+  // For Pro upgrade, set fixed amount
+  const finalAmount = type === 'pro' ? 2999 : amount;
+  const paymentType = type === 'pro' ? 'pro_upgrade' : 'donation';
+
   // Create pending payment row
   const { data: paymentRow, error: insErr } = await supabaseServer
     .from('payments')
-    .insert([{ user_id: userId, amount, type, status: 'pending' }])
+    .insert([{ 
+      user_id: userId, 
+      amount: finalAmount, 
+      payment_type: paymentType,
+      payment_status: 'pending',
+      payment_reference: crypto.randomUUID()
+    }])
     .select()
     .single();
   if (insErr) return res.status(400).json({ error: insErr.message });
@@ -29,8 +39,8 @@ router.post('/initiate', requireAuth, async (req, res) => {
   if (!secret) {
     return res.json({
       mock: true,
-      authorization_url: `https://paystack.mock/authorize/${paymentRow.id}`,
-      reference: paymentRow.id,
+      authorization_url: `https://paystack.mock/authorize/${paymentRow.payment_reference}`,
+      reference: paymentRow.payment_reference,
       public_key: publicKey || 'pk_test_xxx'
     });
   }
@@ -39,9 +49,10 @@ router.post('/initiate', requireAuth, async (req, res) => {
     const initRes = await axios.post(
       `${PAYSTACK_BASE}/transaction/initialize`,
       {
-        amount: Math.round(Number(amount) * 100),
+        amount: Math.round(Number(finalAmount) * 100),
         email: req.user.email || 'user@example.com',
-        metadata: { user_id: userId, type, local_id: paymentRow.id }
+        reference: paymentRow.payment_reference,
+        metadata: { user_id: userId, type: paymentType, local_id: paymentRow.id }
       },
       { headers: { Authorization: `Bearer ${secret}` } }
     );
@@ -59,11 +70,25 @@ router.get('/verify/:ref', requireAuth, async (req, res) => {
 
   if (!secret) {
     // Mock success and update row
-    await supabaseServer
+    const { data: payment } = await supabaseServer
       .from('payments')
-      .update({ status: 'success' })
-      .eq('id', ref)
-      .eq('user_id', req.user.id);
+      .update({ payment_status: 'success' })
+      .eq('payment_reference', ref)
+      .eq('user_id', req.user.id)
+      .select()
+      .single();
+    
+    // If Pro upgrade, update user's subscription
+    if (payment?.payment_type === 'pro_upgrade') {
+      await supabaseServer
+        .from('profiles')
+        .update({ 
+          subscription_tier: 'pro',
+          subscription_date: new Date().toISOString()
+        })
+        .eq('id', req.user.id);
+    }
+    
     return res.json({ status: 'success', reference: ref, mock: true });
   }
 
@@ -72,11 +97,26 @@ router.get('/verify/:ref', requireAuth, async (req, res) => {
       headers: { Authorization: `Bearer ${secret}` }
     });
     const status = verRes?.data?.data?.status === 'success' ? 'success' : 'failed';
-    await supabaseServer
+    
+    const { data: payment } = await supabaseServer
       .from('payments')
-      .update({ status })
+      .update({ payment_status: status })
+      .eq('payment_reference', ref)
       .eq('user_id', req.user.id)
-      .eq('id', ref);
+      .select()
+      .single();
+    
+    // If Pro upgrade and successful, update user's subscription
+    if (status === 'success' && payment?.payment_type === 'pro_upgrade') {
+      await supabaseServer
+        .from('profiles')
+        .update({ 
+          subscription_tier: 'pro',
+          subscription_date: new Date().toISOString()
+        })
+        .eq('id', req.user.id);
+    }
+    
     res.json({ status, reference: ref });
   } catch (e) {
     console.error('Paystack verify error', e?.response?.data || e.message);
@@ -99,12 +139,26 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   const event = JSON.parse(req.body.toString());
   const ref = event?.data?.reference;
   const status = event?.data?.status;
+  const userId = event?.data?.metadata?.user_id;
 
   if (ref && status) {
-    await supabaseServer
+    const { data: payment } = await supabaseServer
       .from('payments')
-      .update({ status })
-      .eq('id', ref);
+      .update({ payment_status: status })
+      .eq('payment_reference', ref)
+      .select()
+      .single();
+    
+    // If Pro upgrade and successful, update user's subscription
+    if (status === 'success' && payment?.payment_type === 'pro_upgrade' && userId) {
+      await supabaseServer
+        .from('profiles')
+        .update({ 
+          subscription_tier: 'pro',
+          subscription_date: new Date().toISOString()
+        })
+        .eq('id', userId);
+    }
   }
   res.status(200).send('ok');
 });

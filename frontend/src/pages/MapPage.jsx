@@ -4,6 +4,7 @@ import L from 'leaflet';
 import * as esri from 'esri-leaflet';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useSubscription } from '../context/SubscriptionContext.jsx';
 import LandForm from '../components/LandForm.jsx';
 
 // Fix Leaflet default icon issue with Vite
@@ -45,6 +46,7 @@ function EsriLayerControl({ showSatellite }) {
 
 export default function MapPage() {
   const { user } = useAuth();
+  const { isPro } = useSubscription();
   const [lands, setLands] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -130,14 +132,25 @@ export default function MapPage() {
             🗺️ Street
           </button>
           <button
-            onClick={() => setMapLayer('satellite')}
-            className={`px-4 py-2 rounded-lg font-semibold shadow-lg transition-all ${
+            onClick={() => {
+              if (!isPro()) {
+                alert('🔒 Satellite view is a Pro feature! Upgrade to access ESRI satellite imagery.');
+                return;
+              }
+              setMapLayer('satellite');
+            }}
+            className={`px-4 py-2 rounded-lg font-semibold shadow-lg transition-all relative ${
               mapLayer === 'satellite'
                 ? 'bg-green-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-100'
             }`}
           >
             🛰️ Satellite
+            {!isPro() && (
+              <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                PRO
+              </span>
+            )}
           </button>
         </div>
 

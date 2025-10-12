@@ -1,15 +1,24 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { supabase } from '../supabaseClient';
+import { useAuth } from '../context/AuthContext.jsx';
+import { useSubscription } from '../context/SubscriptionContext.jsx';
 
-const API = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function Payments() {
+  const { user } = useAuth();
+  const { tier, isPro, refreshSubscription } = useSubscription();
   const [amount, setAmount] = useState('');
   const [ref, setRef] = useState('');
   const [status, setStatus] = useState('');
 
   const initiate = async (type) => {
+    if (!user) {
+      alert('Please sign in to initiate payment');
+      return;
+    }
+    
     try {
       const { data: sess } = await supabase.auth.getSession();
       const accessToken = sess?.session?.access_token;
@@ -40,6 +49,11 @@ export default function Payments() {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
       });
       setStatus(data.status);
+      
+      // Refresh subscription status if payment was successful
+      if (data.status === 'success') {
+        refreshSubscription();
+      }
     } catch (e) {
       alert('Verification failed');
     }
@@ -90,7 +104,16 @@ export default function Payments() {
         </div>
 
         {/* Pro Plan Card */}
-        <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl shadow-xl p-6 text-white hover-lift transform hover:scale-105 transition-all">
+        <div className={`bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl shadow-xl p-6 text-white hover-lift transform hover:scale-105 transition-all ${isPro() ? 'ring-4 ring-green-400' : ''}`}>
+          {isPro() && (
+            <div className="absolute top-4 right-4 bg-green-400 text-green-900 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Active
+            </div>
+          )}
+          
           <div className="text-center mb-6">
             <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,8 +121,8 @@ export default function Payments() {
               </svg>
             </div>
             <h3 className="text-2xl font-bold mb-2">Pro Plan</h3>
-            <div className="text-4xl font-bold mb-2">KES 2,999<span className="text-lg font-normal">/month</span></div>
-            <p className="text-white/80">Unlock premium features</p>
+            <div className="text-4xl font-bold mb-2">KES 2,999<span className="text-lg font-normal"> one-time</span></div>
+            <p className="text-white/80">Unlock premium features forever</p>
           </div>
           
           <ul className="space-y-3 mb-6">
@@ -107,33 +130,38 @@ export default function Payments() {
               <svg className="w-5 h-5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span>Unlimited land tracking</span>
+              <span>Land Management (images, PDFs, crops)</span>
             </li>
             <li className="flex items-center gap-2">
               <svg className="w-5 h-5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span>Advanced AI insights</span>
+              <span>Download insights as PDF</span>
             </li>
             <li className="flex items-center gap-2">
               <svg className="w-5 h-5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span>Priority support</span>
+              <span>ESRI Satellite Map View</span>
             </li>
             <li className="flex items-center gap-2">
               <svg className="w-5 h-5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span>Export reports</span>
+              <span>Crop yield tracking</span>
             </li>
           </ul>
           
           <button 
             onClick={()=>initiate('pro')} 
-            className="w-full bg-white text-purple-600 rounded-lg p-4 font-bold hover:shadow-2xl transform hover:scale-105 transition-all"
+            disabled={isPro()}
+            className={`w-full rounded-lg p-4 font-bold transition-all ${
+              isPro() 
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                : 'bg-white text-purple-600 hover:shadow-2xl transform hover:scale-105'
+            }`}
           >
-            Upgrade to Pro
+            {isPro() ? '✓ Already Pro Member' : 'Upgrade to Pro'}
           </button>
         </div>
       </div>

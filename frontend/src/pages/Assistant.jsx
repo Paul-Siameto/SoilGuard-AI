@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useSubscription } from '../context/SubscriptionContext.jsx';
 
-const API = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function Assistant() {
+  const { isFree } = useSubscription();
   const [messages, setMessages] = useState([{ role: 'ai', text: 'Hello! Ask me about soil health.' }]);
   const [input, setInput] = useState('');
 
@@ -16,6 +18,49 @@ export default function Assistant() {
     const { data } = await axios.post(`${API}/api/ai/chat`, { message: userMsg.text });
     setMessages((m) => [...m, { role: 'ai', text: data?.reply || '...' }]);
   };
+
+  // Check if user has access
+  if (!isFree()) {
+    return (
+      <div className="max-w-4xl animate-fadeIn">
+        <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl shadow-xl p-8 text-center border-2 border-purple-200">
+          <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-10 h-10 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">AI Assistant is for Free Users</h2>
+          <p className="text-gray-600 mb-6">
+            As a Pro member, you have access to advanced features like land management, PDF exports, and satellite imagery. 
+            The AI Assistant is available for free tier users.
+          </p>
+          <div className="bg-white rounded-lg p-4 text-left">
+            <h3 className="font-bold text-gray-800 mb-2">Your Pro Features:</h3>
+            <ul className="space-y-2 text-sm text-gray-600">
+              <li className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Land Management with images & documents
+              </li>
+              <li className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Download insights as PDF
+              </li>
+              <li className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                ESRI Satellite Map View
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl h-[calc(100vh-8rem)] flex flex-col animate-fadeIn">
