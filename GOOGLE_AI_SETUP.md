@@ -75,8 +75,8 @@ The backend has been updated to use **Google's Gemini AI** instead of OpenAI.
 
 ## 💡 API Usage & Limits
 
-- **Free Tier**: 60 requests per minute
-- **Model**: gemini-pro
+- **Free Tier**: 15 requests per minute
+- **Model**: gemini-1.5-flash (fast and efficient)
 - **No credit card required** for basic usage
 
 ---
