@@ -6,7 +6,12 @@ const router = express.Router();
 
 // Initialize Google Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY);
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+// Helper function to get model
+function getModel() {
+  // Use Gemini 2.5 Flash - fast, efficient, and supports generateContent
+  return genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+}
 
 // POST /api/ai/insights
 // Body example: { ph: 6.5, moisture: 30, crop: 'maize' }
@@ -29,6 +34,7 @@ Please provide:
 
 Keep the response practical and actionable for farmers.`;
 
+    const model = getModel();
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
@@ -36,8 +42,16 @@ Keep the response practical and actionable for farmers.`;
     res.json({ result: text });
   } catch (error) {
     console.error('Gemini AI Error:', error);
+    
+    // Check if it's an API key issue
+    if (error.message?.includes('API_KEY_INVALID') || error.status === 400) {
+      return res.status(500).json({ 
+        result: 'Invalid API key. Please check your GOOGLE_AI_API_KEY in the .env file.' 
+      });
+    }
+    
     res.status(500).json({ 
-      result: 'Error generating insights. Please check your API key and try again.' 
+      result: `Error: ${error.message || 'Failed to generate insights. Please try again.'}` 
     });
   }
 });
@@ -57,6 +71,7 @@ A farmer is asking: "${message}"
 
 Provide a helpful, practical, and friendly response. Keep it concise but informative.`;
 
+    const model = getModel();
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
@@ -64,8 +79,16 @@ Provide a helpful, practical, and friendly response. Keep it concise but informa
     res.json({ reply: text });
   } catch (error) {
     console.error('Gemini AI Error:', error);
+    
+    // Check if it's an API key issue
+    if (error.message?.includes('API_KEY_INVALID') || error.status === 400) {
+      return res.status(500).json({ 
+        reply: 'Invalid API key. Please check your GOOGLE_AI_API_KEY in the .env file.' 
+      });
+    }
+    
     res.status(500).json({ 
-      reply: 'Sorry, I encountered an error. Please check your API key and try again.' 
+      reply: `Error: ${error.message || 'Failed to get response. Please try again.'}` 
     });
   }
 });
