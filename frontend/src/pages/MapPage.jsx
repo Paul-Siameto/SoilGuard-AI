@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import React, { useEffect, useState, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import * as esri from 'esri-leaflet';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext.jsx';
 import LandForm from '../components/LandForm.jsx';
@@ -15,11 +16,39 @@ L.Icon.Default.mergeOptions({
 
 const defaultCenter = [0.0236, 37.9062]; // Kenya-ish center
 
+// Component to handle ESRI layer switching
+function EsriLayerControl({ showSatellite }) {
+  const map = useMap();
+  const esriLayerRef = useRef(null);
+
+  useEffect(() => {
+    if (showSatellite) {
+      // Add ESRI World Imagery layer
+      esriLayerRef.current = esri.basemapLayer('Imagery').addTo(map);
+    } else {
+      // Remove ESRI layer if it exists
+      if (esriLayerRef.current) {
+        map.removeLayer(esriLayerRef.current);
+        esriLayerRef.current = null;
+      }
+    }
+
+    return () => {
+      if (esriLayerRef.current) {
+        map.removeLayer(esriLayerRef.current);
+      }
+    };
+  }, [showSatellite, map]);
+
+  return null;
+}
+
 export default function MapPage() {
   const { user } = useAuth();
   const [lands, setLands] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [mapLayer, setMapLayer] = useState('street'); // 'street' or 'satellite'
 
   const fetchLands = async () => {
     const { data, error } = await supabase
@@ -87,12 +116,44 @@ export default function MapPage() {
       </div>
 
       {/* Map Container */}
-      <div className="h-[60vh] rounded-2xl overflow-hidden border-2 border-gray-200 shadow-xl hover-lift">
+      <div className="relative h-[60vh] rounded-2xl overflow-hidden border-2 border-gray-200 shadow-xl hover-lift">
+        {/* Layer Switcher Button */}
+        <div className="absolute top-4 right-4 z-[1000] flex gap-2">
+          <button
+            onClick={() => setMapLayer('street')}
+            className={`px-4 py-2 rounded-lg font-semibold shadow-lg transition-all ${
+              mapLayer === 'street'
+                ? 'bg-green-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            🗺️ Street
+          </button>
+          <button
+            onClick={() => setMapLayer('satellite')}
+            className={`px-4 py-2 rounded-lg font-semibold shadow-lg transition-all ${
+              mapLayer === 'satellite'
+                ? 'bg-green-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            🛰️ Satellite
+          </button>
+        </div>
+
         <MapContainer center={defaultCenter} zoom={6} style={{ height: '100%', width: '100%' }}>
-          <TileLayer 
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          />
+          {/* OpenStreetMap Layer - only show when street mode */}
+          {mapLayer === 'street' && (
+            <TileLayer 
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            />
+          )}
+          
+          {/* ESRI Satellite Layer Control */}
+          <EsriLayerControl showSatellite={mapLayer === 'satellite'} />
+          
+          {/* Markers - shown on both layers */}
           {lands.filter(l => l.latitude && l.longitude && !isNaN(l.latitude) && !isNaN(l.longitude)).map((l) => (
             <Marker key={l.id} position={[Number(l.latitude), Number(l.longitude)]}>
               <Popup>
@@ -141,8 +202,8 @@ export default function MapPage() {
 
       {/* Modal */}
       {(showForm || editing) && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl animate-scaleIn">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-fadeIn">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl animate-scaleIn relative z-[10000]">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold text-gray-800">
                 {editing ? '✏️ Edit Land' : '➕ Add New Land'}
