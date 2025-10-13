@@ -13,7 +13,11 @@ const PORT = process.env.PORT || 5000;
 // CORS - allow frontend origin
 app.use(
   cors({
-    origin: [process.env.FRONTEND_ORIGIN || 'http://localhost:5173'],
+    origin: [
+      process.env.FRONTEND_ORIGIN || 'http://localhost:5173',
+      'https://soilguard-info.vercel.app',
+      'https://soilguard-info-git-main-pauls-projects-5b81e1a2.vercel.app'
+    ],
     credentials: true
   })
 );
@@ -28,4 +32,10 @@ app.use('/api/payments', paymentRoutes);
 
 app.get('/health', (req, res) => res.json({ ok: true }));
 
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+}
+
+// Export for Vercel serverless
+export default app;
