@@ -83,41 +83,74 @@ export default function Assistant() {
   }
 
   return (
-    <div className="max-w-4xl h-[calc(100vh-8rem)] flex flex-col animate-fadeIn">
-      <div className="mb-4">
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">🤖 AI Assistant</h2>
-        <p className="text-gray-600">Ask me anything about soil health and farming</p>
+    <div className="max-w-5xl h-[calc(100vh-8rem)] flex flex-col animate-fadeIn">
+      {/* Header */}
+      <div className="mb-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl p-6 border-2 border-green-100">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 bg-gradient-green rounded-xl flex items-center justify-center shadow-lg">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-3xl font-bold text-gray-800 mb-1">AI Farming Assistant</h2>
+            <p className="text-gray-600">Get expert advice on soil health, crop management, and sustainable farming practices</p>
+          </div>
+        </div>
       </div>
 
       {/* Chat Container */}
-      <div className="flex-1 bg-white rounded-2xl shadow-xl flex flex-col overflow-hidden">
+      <div className="flex-1 bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border-2 border-gray-100">
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gradient-to-b from-gray-50 to-white">
           {messages.map((m, idx) => (
             <div key={idx} className={`flex ${m.role === 'ai' ? 'justify-start' : 'justify-end'} animate-fadeIn`}>
-              <div className={`flex gap-3 max-w-[80%] ${m.role === 'ai' ? 'flex-row' : 'flex-row-reverse'}`}>
+              <div className={`flex gap-4 max-w-[85%] ${m.role === 'ai' ? 'flex-row' : 'flex-row-reverse'}`}>
                 {/* Avatar */}
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  m.role === 'ai' ? 'bg-gradient-green' : 'bg-blue-500'
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ${
+                  m.role === 'ai' ? 'bg-gradient-green' : 'bg-gradient-to-br from-blue-500 to-blue-600'
                 }`}>
                   {m.role === 'ai' ? (
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                     </svg>
                   ) : (
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   )}
                 </div>
                 
                 {/* Message Bubble */}
-                <div className={`rounded-2xl px-4 py-3 shadow-md ${
+                <div className={`rounded-2xl px-5 py-4 shadow-lg ${
                   m.role === 'ai' 
-                    ? 'bg-gray-100 text-gray-800' 
+                    ? 'bg-white border-2 border-green-100 text-gray-800' 
                     : 'gradient-green text-white'
                 }`}>
-                  <p className="leading-relaxed">{m.text}</p>
+                  <div className={`text-sm font-semibold mb-2 ${m.role === 'ai' ? 'text-green-700' : 'text-green-100'}`}>
+                    {m.role === 'ai' ? '🌱 AI Assistant' : 'You'}
+                  </div>
+                  <div className="leading-relaxed whitespace-pre-wrap text-base">
+                    {m.text.split('\n').map((line, i) => (
+                      <p key={i} className={i > 0 ? 'mt-3' : ''}>
+                        {line.startsWith('•') || line.startsWith('-') ? (
+                          <span className="flex gap-2">
+                            <span className={m.role === 'ai' ? 'text-green-600' : 'text-green-200'}>•</span>
+                            <span>{line.replace(/^[•-]\s*/, '')}</span>
+                          </span>
+                        ) : line.match(/^\d+\./) ? (
+                          <span className="flex gap-2">
+                            <span className={`font-semibold ${m.role === 'ai' ? 'text-green-600' : 'text-green-200'}`}>
+                              {line.match(/^\d+\./)[0]}
+                            </span>
+                            <span>{line.replace(/^\d+\.\s*/, '')}</span>
+                          </span>
+                        ) : (
+                          line
+                        )}
+                      </p>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

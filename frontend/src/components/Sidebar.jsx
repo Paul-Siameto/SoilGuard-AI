@@ -14,16 +14,17 @@ export default function Sidebar({ onLogout }) {
   return (
     <aside className="w-64 bg-white border-r hidden md:flex md:flex-col animate-slideIn shadow-lg">
       {/* Logo Section */}
-      <div className="p-6 border-b">
+      <div className="p-6 border-b bg-gradient-to-br from-green-50 to-white">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-green rounded-lg flex items-center justify-center shadow-md">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg border-2 border-green-600">
+            <svg className="w-8 h-8 text-green-700" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm0 2.18l7 3.89v5.43c0 4.54-3.13 8.79-7 9.86-3.87-1.07-7-5.32-7-9.86V8.07l7-3.89zM12 7c-1.66 0-3 1.34-3 3v1c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1c0-1.66-1.34-3-3-3zm0 2c.55 0 1 .45 1 1v1h-2v-1c0-.55.45-1 1-1z"/>
+              <path d="M12 13c-1.1 0-2 .9-2 2v3h4v-3c0-1.1-.9-2-2-2z"/>
             </svg>
           </div>
           <div>
-            <div className="font-bold text-lg bg-gradient-green bg-clip-text text-transparent">SoilGuard</div>
-            <div className="text-xs text-gray-500">AI Platform</div>
+            <div className="font-bold text-xl text-green-800">SoilGuard-AI</div>
+            <div className="text-xs text-green-600 font-medium">Smart Farming Platform</div>
           </div>
         </div>
       </div>

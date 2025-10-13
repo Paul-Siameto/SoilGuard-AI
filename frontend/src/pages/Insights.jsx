@@ -71,13 +71,23 @@ export default function Insights() {
   };
 
   return (
-    <div className="max-w-3xl animate-fadeIn">
-      <div className="mb-6">
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">🌱 Soil Insights</h2>
-        <p className="text-gray-600">Get AI-powered recommendations for your soil health</p>
+    <div className="max-w-4xl animate-fadeIn">
+      {/* Header */}
+      <div className="mb-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl p-6 border-2 border-green-100">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 bg-gradient-green rounded-xl flex items-center justify-center shadow-lg">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-3xl font-bold text-gray-800 mb-1">Soil Health Insights</h2>
+            <p className="text-gray-600">Get AI-powered recommendations based on your soil analysis data</p>
+          </div>
+        </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-xl p-6 hover-lift">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 hover-lift border-2 border-gray-100">
         <form onSubmit={generate} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -149,38 +159,55 @@ export default function Insights() {
       </div>
 
       {result && (
-        <div className="mt-6 bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl shadow-xl p-6 animate-fadeIn border-2 border-green-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+        <div className="mt-6 bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl p-8 border-2 border-green-200 animate-fadeIn shadow-lg">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-green rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-gray-800">AI Recommendations</h3>
+              <h3 className="text-2xl font-bold text-gray-800">AI Recommendations</h3>
             </div>
-            
             <button
               onClick={downloadPDF}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
-                isPro()
-                  ? 'bg-green-600 text-white hover:bg-green-700 hover:shadow-lg'
-                  : 'bg-gray-200 text-gray-500 cursor-not-allowed relative'
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all shadow-md ${
+                isPro() 
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-xl transform hover:scale-105' 
+                  : 'bg-gray-300 text-gray-600 cursor-not-allowed'
               }`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              Download PDF
-              {!isPro() && (
-                <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                  PRO
-                </span>
-              )}
+              <span>{isPro() ? 'Download PDF' : '🔒 Pro Feature'}</span>
             </button>
           </div>
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <pre className="whitespace-pre-wrap text-gray-700 leading-relaxed">{result}</pre>
+          <div className="bg-white rounded-xl p-6 shadow-inner">
+            <div className="prose max-w-none text-gray-800 leading-relaxed">
+              {result.split('\n').map((paragraph, idx) => (
+                <p key={idx} className={`${idx > 0 ? 'mt-4' : ''} text-base`}>
+                  {paragraph.startsWith('•') || paragraph.startsWith('-') ? (
+                    <span className="flex gap-3">
+                      <span className="text-green-600 font-bold">•</span>
+                      <span>{paragraph.replace(/^[•-]\s*/, '')}</span>
+                    </span>
+                  ) : paragraph.match(/^\d+\./) ? (
+                    <span className="flex gap-3">
+                      <span className="text-green-600 font-bold">{paragraph.match(/^\d+\./)[0]}</span>
+                      <span>{paragraph.replace(/^\d+\.\s*/, '')}</span>
+                    </span>
+                  ) : paragraph.includes(':') && paragraph.split(':')[0].length < 30 ? (
+                    <span>
+                      <strong className="text-green-700">{paragraph.split(':')[0]}:</strong>
+                      {paragraph.substring(paragraph.indexOf(':') + 1)}
+                    </span>
+                  ) : (
+                    paragraph
+                  )}
+                </p>
+              ))}
+            </div>
           </div>
         </div>
       )}
