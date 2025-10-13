@@ -10,15 +10,74 @@ export default function Assistant() {
   const navigate = useNavigate();
   const [messages, setMessages] = useState([{ role: 'ai', text: 'Hello! Ask me about soil health.' }]);
   const [input, setInput] = useState('');
+  const [showToolbar, setShowToolbar] = useState(false);
+  const inputRef = React.useRef(null);
 
   const send = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
-    const userMsg = { role: 'user', text: input };
+    const userMsg = { role: 'user', text: input, html: input };
     setMessages((m) => [...m, userMsg]);
     setInput('');
     const { data } = await axios.post(`${API}/api/ai/chat`, { message: userMsg.text });
-    setMessages((m) => [...m, { role: 'ai', text: data?.reply || '...' }]);
+    setMessages((m) => [...m, { role: 'ai', text: data?.reply || '...', html: data?.reply || '...' }]);
+  };
+
+  const insertFormatting = (format) => {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = input.substring(start, end);
+    
+    let formattedText = '';
+    switch(format) {
+      case 'bold':
+        formattedText = `**${selectedText || 'bold text'}**`;
+        break;
+      case 'italic':
+        formattedText = `*${selectedText || 'italic text'}*`;
+        break;
+      case 'heading':
+        formattedText = `### ${selectedText || 'Heading'}`;
+        break;
+      case 'bullet':
+        formattedText = `\n• ${selectedText || 'List item'}`;
+        break;
+      case 'number':
+        formattedText = `\n1. ${selectedText || 'Numbered item'}`;
+        break;
+    }
+
+    const newText = input.substring(0, start) + formattedText + input.substring(end);
+    setInput(newText);
+    
+    // Refocus and set cursor position
+    setTimeout(() => {
+      textarea.focus();
+      const newPos = start + formattedText.length;
+      textarea.setSelectionRange(newPos, newPos);
+    }, 0);
+  };
+
+  const renderFormattedText = (text) => {
+    if (!text) return '';
+    
+    // Convert markdown-style formatting to HTML
+    let formatted = text
+      // Bold: **text** or __text__
+      .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold text-gray-900">$1</strong>')
+      .replace(/__(.+?)__/g, '<strong class="font-bold text-gray-900">$1</strong>')
+      // Italic: *text* or _text_
+      .replace(/\*(.+?)\*/g, '<em class="italic">$1</em>')
+      .replace(/_(.+?)_/g, '<em class="italic">$1</em>')
+      // Headings: ### text
+      .replace(/###\s(.+?)(\n|$)/g, '<h3 class="text-lg font-bold mt-2 mb-1">$1</h3>')
+      .replace(/##\s(.+?)(\n|$)/g, '<h2 class="text-xl font-bold mt-2 mb-1">$1</h2>')
+      .replace(/#\s(.+?)(\n|$)/g, '<h1 class="text-2xl font-bold mt-2 mb-1">$1</h1>');
+    
+    return formatted;
   };
 
   // Restrict to Pro users only
@@ -130,27 +189,20 @@ export default function Assistant() {
                   <div className={`text-sm font-semibold mb-2 ${m.role === 'ai' ? 'text-green-700' : 'text-green-100'}`}>
                     {m.role === 'ai' ? '🌱 AI Assistant' : 'You'}
                   </div>
-                  <div className="leading-relaxed whitespace-pre-wrap text-base">
-                    {m.text.split('\n').map((line, i) => (
-                      <p key={i} className={i > 0 ? 'mt-3' : ''}>
-                        {line.startsWith('•') || line.startsWith('-') ? (
-                          <span className="flex gap-2">
-                            <span className={m.role === 'ai' ? 'text-green-600' : 'text-green-200'}>•</span>
-                            <span>{line.replace(/^[•-]\s*/, '')}</span>
-                          </span>
-                        ) : line.match(/^\d+\./) ? (
-                          <span className="flex gap-2">
-                            <span className={`font-semibold ${m.role === 'ai' ? 'text-green-600' : 'text-green-200'}`}>
-                              {line.match(/^\d+\./)[0]}
-                            </span>
-                            <span>{line.replace(/^\d+\.\s*/, '')}</span>
-                          </span>
-                        ) : (
-                          line
-                        )}
-                      </p>
-                    ))}
-                  </div>
+                  <div 
+                    className="leading-relaxed text-base"
+                    dangerouslySetInnerHTML={{ 
+                      __html: renderFormattedText(m.text || m.html || '').split('\n').map((line, i) => {
+                        if (line.startsWith('•') || line.startsWith('-')) {
+                          return `<p class="${i > 0 ? 'mt-3' : ''}"><span class="flex gap-2"><span class="${m.role === 'ai' ? 'text-green-600' : 'text-green-200'}">•</span><span>${line.replace(/^[•-]\s*/, '')}</span></span></p>`;
+                        } else if (line.match(/^\d+\./)) {
+                          return `<p class="${i > 0 ? 'mt-3' : ''}"><span class="flex gap-2"><span class="font-semibold ${m.role === 'ai' ? 'text-green-600' : 'text-green-200'}">${line.match(/^\d+\./)[0]}</span><span>${line.replace(/^\d+\.\s*/, '')}</span></span></p>`;
+                        } else {
+                          return `<p class="${i > 0 ? 'mt-3' : ''}">${line}</p>`;
+                        }
+                      }).join('')
+                    }}
+                  />
                 </div>
               </div>
             </div>
@@ -159,16 +211,119 @@ export default function Assistant() {
 
         {/* Input Area */}
         <div className="border-t bg-gray-50 p-4">
+          {/* Formatting Toolbar Toggle */}
+          <div className="flex items-center justify-between mb-3">
+            <button
+              type="button"
+              onClick={() => setShowToolbar(!showToolbar)}
+              className="flex items-center gap-2 text-sm text-gray-600 hover:text-green-600 transition-all"
+            >
+              <svg className={`w-4 h-4 transition-transform ${showToolbar ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+              <span className="font-medium">{showToolbar ? 'Hide' : 'Show'} Formatting Toolbar</span>
+            </button>
+          </div>
+
+          {/* Formatting Toolbar */}
+          {showToolbar && (
+            <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-200 animate-fadeIn">
+              <span className="text-xs font-semibold text-gray-500 mr-2">Format:</span>
+            <button
+              type="button"
+              onClick={() => insertFormatting('bold')}
+              className="p-2 hover:bg-gray-200 rounded-lg transition-all group relative"
+              title="Bold (Ctrl+B)"
+            >
+              <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z" />
+              </svg>
+              <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                Bold
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => insertFormatting('italic')}
+              className="p-2 hover:bg-gray-200 rounded-lg transition-all group relative"
+              title="Italic (Ctrl+I)"
+            >
+              <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <line x1="19" y1="4" x2="10" y2="4" strokeWidth={2}/>
+                <line x1="14" y1="20" x2="5" y2="20" strokeWidth={2}/>
+                <line x1="15" y1="4" x2="9" y2="20" strokeWidth={2}/>
+              </svg>
+              <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                Italic
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => insertFormatting('heading')}
+              className="p-2 hover:bg-gray-200 rounded-lg transition-all group relative"
+              title="Heading"
+            >
+              <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+              </svg>
+              <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                Heading
+              </span>
+            </button>
+            <div className="w-px h-6 bg-gray-300 mx-1"></div>
+            <button
+              type="button"
+              onClick={() => insertFormatting('bullet')}
+              className="p-2 hover:bg-gray-200 rounded-lg transition-all group relative"
+              title="Bullet List"
+            >
+              <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                <circle cx="4" cy="6" r="1" fill="currentColor"/>
+                <circle cx="4" cy="12" r="1" fill="currentColor"/>
+                <circle cx="4" cy="18" r="1" fill="currentColor"/>
+              </svg>
+              <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                Bullet List
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => insertFormatting('number')}
+              className="p-2 hover:bg-gray-200 rounded-lg transition-all group relative"
+              title="Numbered List"
+            >
+              <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 6h13M7 12h13M7 18h13" />
+                <text x="2" y="8" fontSize="8" fill="currentColor">1</text>
+                <text x="2" y="14" fontSize="8" fill="currentColor">2</text>
+                <text x="2" y="20" fontSize="8" fill="currentColor">3</text>
+              </svg>
+              <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                Numbered List
+              </span>
+            </button>
+            </div>
+          )}
+
           <form onSubmit={send} className="flex gap-3">
-            <input 
-              className="flex-1 border-2 border-gray-200 rounded-full px-6 py-3 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all" 
+            <textarea
+              ref={inputRef}
+              className="flex-1 border-2 border-gray-200 rounded-xl px-6 py-3 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all resize-none" 
               value={input} 
               onChange={(e)=>setInput(e.target.value)} 
-              placeholder="Type your question here..."
+              placeholder="Type your question here... Use the toolbar above to format text."
+              rows={2}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  send(e);
+                }
+              }}
             />
             <button 
               type="submit"
-              className="gradient-green text-white rounded-full px-8 py-3 font-semibold hover:shadow-lg transform hover:scale-105 transition-all flex items-center gap-2"
+              className="gradient-green text-white rounded-xl px-8 py-3 font-semibold hover:shadow-lg transform hover:scale-105 transition-all flex items-center gap-2 self-end"
             >
               <span>Send</span>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -13,6 +13,25 @@ export default function Insights() {
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const renderFormattedText = (text) => {
+    if (!text) return '';
+    
+    // Convert markdown-style formatting to HTML
+    let formatted = text
+      // Bold: **text** or __text__
+      .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold text-gray-900">$1</strong>')
+      .replace(/__(.+?)__/g, '<strong class="font-bold text-gray-900">$1</strong>')
+      // Italic: *text* or _text_
+      .replace(/\*(.+?)\*/g, '<em class="italic">$1</em>')
+      .replace(/_(.+?)_/g, '<em class="italic">$1</em>')
+      // Headings: ### text
+      .replace(/###\s(.+?)(\n|$)/g, '<h3 class="text-lg font-bold mt-3 mb-2 text-green-700">$1</h3>')
+      .replace(/##\s(.+?)(\n|$)/g, '<h2 class="text-xl font-bold mt-3 mb-2 text-green-700">$1</h2>')
+      .replace(/#\s(.+?)(\n|$)/g, '<h1 class="text-2xl font-bold mt-3 mb-2 text-green-700">$1</h1>');
+    
+    return formatted;
+  };
+
   const generate = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -184,30 +203,22 @@ export default function Insights() {
             </button>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-inner">
-            <div className="prose max-w-none text-gray-800 leading-relaxed">
-              {result.split('\n').map((paragraph, idx) => (
-                <p key={idx} className={`${idx > 0 ? 'mt-4' : ''} text-base`}>
-                  {paragraph.startsWith('•') || paragraph.startsWith('-') ? (
-                    <span className="flex gap-3">
-                      <span className="text-green-600 font-bold">•</span>
-                      <span>{paragraph.replace(/^[•-]\s*/, '')}</span>
-                    </span>
-                  ) : paragraph.match(/^\d+\./) ? (
-                    <span className="flex gap-3">
-                      <span className="text-green-600 font-bold">{paragraph.match(/^\d+\./)[0]}</span>
-                      <span>{paragraph.replace(/^\d+\.\s*/, '')}</span>
-                    </span>
-                  ) : paragraph.includes(':') && paragraph.split(':')[0].length < 30 ? (
-                    <span>
-                      <strong className="text-green-700">{paragraph.split(':')[0]}:</strong>
-                      {paragraph.substring(paragraph.indexOf(':') + 1)}
-                    </span>
-                  ) : (
-                    paragraph
-                  )}
-                </p>
-              ))}
-            </div>
+            <div 
+              className="prose max-w-none text-gray-800 leading-relaxed"
+              dangerouslySetInnerHTML={{ 
+                __html: renderFormattedText(result).split('\n').map((line, i) => {
+                  if (line.startsWith('•') || line.startsWith('-')) {
+                    return `<p class="${i > 0 ? 'mt-4' : ''}"><span class="flex gap-3"><span class="text-green-600 font-bold">•</span><span>${line.replace(/^[•-]\s*/, '')}</span></span></p>`;
+                  } else if (line.match(/^\d+\./)) {
+                    return `<p class="${i > 0 ? 'mt-4' : ''}"><span class="flex gap-3"><span class="text-green-600 font-bold">${line.match(/^\d+\./)[0]}</span><span>${line.replace(/^\d+\.\s*/, '')}</span></span></p>`;
+                  } else if (line.includes(':') && line.split(':')[0].length < 30 && !line.includes('<')) {
+                    return `<p class="${i > 0 ? 'mt-4' : ''} text-base"><strong class="text-green-700">${line.split(':')[0]}:</strong>${line.substring(line.indexOf(':') + 1)}</p>`;
+                  } else {
+                    return `<p class="${i > 0 ? 'mt-4' : ''} text-base">${line}</p>`;
+                  }
+                }).join('')
+              }}
+            />
           </div>
         </div>
       )}
