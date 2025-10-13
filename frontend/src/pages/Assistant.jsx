@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useSubscription } from '../context/SubscriptionContext.jsx';
+import { useNavigate } from 'react-router-dom';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function Assistant() {
-  const { isFree } = useSubscription();
+  const { isPro } = useSubscription();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState([{ role: 'ai', text: 'Hello! Ask me about soil health.' }]);
   const [input, setInput] = useState('');
 
@@ -19,8 +21,8 @@ export default function Assistant() {
     setMessages((m) => [...m, { role: 'ai', text: data?.reply || '...' }]);
   };
 
-  // Check if user has access
-  if (!isFree()) {
+  // Restrict to Pro users only
+  if (!isPro()) {
     return (
       <div className="max-w-4xl animate-fadeIn">
         <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl shadow-xl p-8 text-center border-2 border-purple-200">
@@ -29,34 +31,52 @@ export default function Assistant() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">AI Assistant is for Free Users</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">🔒 AI Assistant - Pro Feature</h2>
           <p className="text-gray-600 mb-6">
-            As a Pro member, you have access to advanced features like land management, PDF exports, and satellite imagery. 
-            The AI Assistant is available for free tier users.
+            The AI Assistant is a premium feature available exclusively to Pro members. 
+            Upgrade to Pro to get instant answers about soil health, farming techniques, and crop management.
           </p>
-          <div className="bg-white rounded-lg p-4 text-left">
-            <h3 className="font-bold text-gray-800 mb-2">Your Pro Features:</h3>
+          <div className="bg-white rounded-lg p-4 text-left mb-6">
+            <h3 className="font-bold text-gray-800 mb-2">Pro Features Include:</h3>
             <ul className="space-y-2 text-sm text-gray-600">
               <li className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="font-semibold">AI Assistant</span> - Get instant farming advice
+              </li>
+              <li className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
                 Land Management with images & documents
               </li>
               <li className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
                 Download insights as PDF
               </li>
               <li className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
                 ESRI Satellite Map View
               </li>
+              <li className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Crop yield tracking
+              </li>
             </ul>
           </div>
+          <button
+            onClick={() => navigate('/dashboard/payments')}
+            className="gradient-green text-white px-8 py-3 rounded-lg font-bold hover:shadow-2xl transform hover:scale-105 transition-all"
+          >
+            Upgrade to Pro - KES 2,999
+          </button>
         </div>
       </div>
     );

@@ -241,14 +241,121 @@ function LandDetails({ land, onUpdate }) {
 }
 
 function ImagesTab({ images, landId, onUpdate }) {
+  const { user } = useAuth();
+  const [uploading, setUploading] = useState(false);
+  const [caption, setCaption] = useState('');
+  const [showUploadForm, setShowUploadForm] = useState(false);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${landId}/${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('land-images')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('land-images')
+        .getPublicUrl(fileName);
+
+      // Save to database
+      const { error: dbError } = await supabase
+        .from('land_images')
+        .insert({
+          land_id: landId,
+          user_id: user.id,
+          image_url: publicUrl,
+          caption: caption || null
+        });
+
+      if (dbError) throw dbError;
+
+      alert('✅ Image uploaded successfully!');
+      setCaption('');
+      setShowUploadForm(false);
+      onUpdate();
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Failed to upload image: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteImage = async (imageId, imageUrl) => {
+    if (!confirm('Are you sure you want to delete this image?')) return;
+
+    try {
+      // Delete from database
+      const { error } = await supabase
+        .from('land_images')
+        .delete()
+        .eq('id', imageId);
+
+      if (error) throw error;
+
+      // Optionally delete from storage
+      const fileName = imageUrl.split('/').slice(-3).join('/');
+      await supabase.storage.from('land-images').remove([fileName]);
+
+      alert('✅ Image deleted successfully!');
+      onUpdate();
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      alert('Failed to delete image: ' + error.message);
+    }
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-lg font-bold text-gray-800">Land Images</h4>
-        <button className="gradient-green text-white px-4 py-2 rounded-lg font-semibold hover:shadow-lg transition-all">
-          + Upload Image
+        <button 
+          onClick={() => setShowUploadForm(!showUploadForm)}
+          className="gradient-green text-white px-4 py-2 rounded-lg font-semibold hover:shadow-lg transition-all"
+        >
+          {showUploadForm ? '✕ Cancel' : '+ Upload Image'}
         </button>
       </div>
+
+      {showUploadForm && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <h5 className="font-semibold text-gray-800 mb-3">Upload New Image</h5>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Image File</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                disabled={uploading}
+                className="w-full border-2 border-gray-200 rounded-lg p-2 focus:border-green-500 focus:ring-2 focus:ring-green-200"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Caption (Optional)</label>
+              <input
+                type="text"
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                placeholder="Enter image caption"
+                className="w-full border-2 border-gray-200 rounded-lg p-2 focus:border-green-500 focus:ring-2 focus:ring-green-200"
+              />
+            </div>
+          </div>
+          {uploading && <p className="mt-2 text-sm text-green-600">Uploading...</p>}
+        </div>
+      )}
+
       {images.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <p>No images uploaded yet</p>
@@ -262,6 +369,14 @@ function ImagesTab({ images, landId, onUpdate }) {
                 alt={img.caption || 'Land image'}
                 className="w-full h-48 object-cover rounded-lg shadow-md"
               />
+              <button
+                onClick={() => handleDeleteImage(img.id, img.image_url)}
+                className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
               {img.caption && (
                 <p className="mt-2 text-sm text-gray-600">{img.caption}</p>
               )}
@@ -274,14 +389,109 @@ function ImagesTab({ images, landId, onUpdate }) {
 }
 
 function DocumentsTab({ documents, landId, onUpdate }) {
+  const { user } = useAuth();
+  const [uploading, setUploading] = useState(false);
+  const [showUploadForm, setShowUploadForm] = useState(false);
+
+  const handleDocumentUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${landId}/${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('land-documents')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('land-documents')
+        .getPublicUrl(fileName);
+
+      // Save to database
+      const { error: dbError } = await supabase
+        .from('land_documents')
+        .insert({
+          land_id: landId,
+          user_id: user.id,
+          document_url: publicUrl,
+          document_name: file.name,
+          document_type: file.type || 'application/octet-stream',
+          file_size: file.size
+        });
+
+      if (dbError) throw dbError;
+
+      alert('✅ Document uploaded successfully!');
+      setShowUploadForm(false);
+      onUpdate();
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      alert('Failed to upload document: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteDocument = async (docId, docUrl) => {
+    if (!confirm('Are you sure you want to delete this document?')) return;
+
+    try {
+      // Delete from database
+      const { error } = await supabase
+        .from('land_documents')
+        .delete()
+        .eq('id', docId);
+
+      if (error) throw error;
+
+      // Delete from storage
+      const fileName = docUrl.split('/').slice(-3).join('/');
+      await supabase.storage.from('land-documents').remove([fileName]);
+
+      alert('✅ Document deleted successfully!');
+      onUpdate();
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      alert('Failed to delete document: ' + error.message);
+    }
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-lg font-bold text-gray-800">Documents</h4>
-        <button className="gradient-green text-white px-4 py-2 rounded-lg font-semibold hover:shadow-lg transition-all">
-          + Upload Document
+        <button 
+          onClick={() => setShowUploadForm(!showUploadForm)}
+          className="gradient-green text-white px-4 py-2 rounded-lg font-semibold hover:shadow-lg transition-all"
+        >
+          {showUploadForm ? '✕ Cancel' : '+ Upload Document'}
         </button>
       </div>
+
+      {showUploadForm && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <h5 className="font-semibold text-gray-800 mb-3">Upload New Document</h5>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Document File (PDF, DOC, etc.)</label>
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx,.txt"
+              onChange={handleDocumentUpload}
+              disabled={uploading}
+              className="w-full border-2 border-gray-200 rounded-lg p-2 focus:border-green-500 focus:ring-2 focus:ring-green-200"
+            />
+          </div>
+          {uploading && <p className="mt-2 text-sm text-green-600">Uploading...</p>}
+        </div>
+      )}
+
       {documents.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <p>No documents uploaded yet</p>
@@ -301,14 +511,22 @@ function DocumentsTab({ documents, landId, onUpdate }) {
                   {doc.document_type} • {(doc.file_size / 1024).toFixed(2)} KB
                 </p>
               </div>
-              <a
-                href={doc.document_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-purple-600 hover:text-purple-700 font-semibold"
-              >
-                View
-              </a>
+              <div className="flex gap-2">
+                <a
+                  href={doc.document_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-purple-600 hover:text-purple-700 font-semibold"
+                >
+                  View
+                </a>
+                <button
+                  onClick={() => handleDeleteDocument(doc.id, doc.document_url)}
+                  className="text-red-600 hover:text-red-700 font-semibold"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -318,14 +536,173 @@ function DocumentsTab({ documents, landId, onUpdate }) {
 }
 
 function CropsTab({ crops, landId, onUpdate }) {
+  const { user } = useAuth();
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [formData, setFormData] = useState({
+    crop_name: '',
+    planting_date: '',
+    expected_harvest_date: '',
+    actual_harvest_date: '',
+    yield_amount: '',
+    yield_unit: 'kg',
+    notes: ''
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      const { error } = await supabase
+        .from('crop_tracking')
+        .insert({
+          land_id: landId,
+          user_id: user.id,
+          crop_name: formData.crop_name,
+          planting_date: formData.planting_date || null,
+          expected_harvest_date: formData.expected_harvest_date || null,
+          actual_harvest_date: formData.actual_harvest_date || null,
+          yield_amount: formData.yield_amount ? parseFloat(formData.yield_amount) : null,
+          yield_unit: formData.yield_unit || null,
+          notes: formData.notes || null
+        });
+
+      if (error) throw error;
+
+      alert('✅ Crop added successfully!');
+      setFormData({
+        crop_name: '',
+        planting_date: '',
+        expected_harvest_date: '',
+        actual_harvest_date: '',
+        yield_amount: '',
+        yield_unit: 'kg',
+        notes: ''
+      });
+      setShowAddForm(false);
+      onUpdate();
+    } catch (error) {
+      console.error('Error adding crop:', error);
+      alert('Failed to add crop: ' + error.message);
+    }
+  };
+
+  const handleDelete = async (cropId) => {
+    if (!confirm('Are you sure you want to delete this crop?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('crop_tracking')
+        .delete()
+        .eq('id', cropId);
+
+      if (error) throw error;
+
+      alert('✅ Crop deleted successfully!');
+      onUpdate();
+    } catch (error) {
+      console.error('Error deleting crop:', error);
+      alert('Failed to delete crop: ' + error.message);
+    }
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-lg font-bold text-gray-800">Crop Tracking</h4>
-        <button className="gradient-green text-white px-4 py-2 rounded-lg font-semibold hover:shadow-lg transition-all">
-          + Add Crop
+        <button 
+          onClick={() => setShowAddForm(!showAddForm)}
+          className="gradient-green text-white px-4 py-2 rounded-lg font-semibold hover:shadow-lg transition-all"
+        >
+          {showAddForm ? '✕ Cancel' : '+ Add Crop'}
         </button>
       </div>
+
+      {showAddForm && (
+        <form onSubmit={handleSubmit} className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <h5 className="font-semibold text-gray-800 mb-3">Add New Crop</h5>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Crop Name *</label>
+              <input
+                type="text"
+                required
+                value={formData.crop_name}
+                onChange={(e) => setFormData({...formData, crop_name: e.target.value})}
+                placeholder="e.g., Maize, Wheat"
+                className="w-full border-2 border-gray-200 rounded-lg p-2 focus:border-green-500 focus:ring-2 focus:ring-green-200"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Planting Date</label>
+              <input
+                type="date"
+                value={formData.planting_date}
+                onChange={(e) => setFormData({...formData, planting_date: e.target.value})}
+                className="w-full border-2 border-gray-200 rounded-lg p-2 focus:border-green-500 focus:ring-2 focus:ring-green-200"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Expected Harvest Date</label>
+              <input
+                type="date"
+                value={formData.expected_harvest_date}
+                onChange={(e) => setFormData({...formData, expected_harvest_date: e.target.value})}
+                className="w-full border-2 border-gray-200 rounded-lg p-2 focus:border-green-500 focus:ring-2 focus:ring-green-200"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Actual Harvest Date</label>
+              <input
+                type="date"
+                value={formData.actual_harvest_date}
+                onChange={(e) => setFormData({...formData, actual_harvest_date: e.target.value})}
+                className="w-full border-2 border-gray-200 rounded-lg p-2 focus:border-green-500 focus:ring-2 focus:ring-green-200"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Yield Amount</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.yield_amount}
+                onChange={(e) => setFormData({...formData, yield_amount: e.target.value})}
+                placeholder="e.g., 1500"
+                className="w-full border-2 border-gray-200 rounded-lg p-2 focus:border-green-500 focus:ring-2 focus:ring-green-200"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Yield Unit</label>
+              <select
+                value={formData.yield_unit}
+                onChange={(e) => setFormData({...formData, yield_unit: e.target.value})}
+                className="w-full border-2 border-gray-200 rounded-lg p-2 focus:border-green-500 focus:ring-2 focus:ring-green-200"
+              >
+                <option value="kg">Kilograms (kg)</option>
+                <option value="tons">Tons</option>
+                <option value="bags">Bags</option>
+                <option value="bushels">Bushels</option>
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                placeholder="Additional notes about this crop..."
+                rows={3}
+                className="w-full border-2 border-gray-200 rounded-lg p-2 focus:border-green-500 focus:ring-2 focus:ring-green-200"
+              />
+            </div>
+          </div>
+          <button
+            type="submit"
+            className="mt-4 gradient-green text-white px-6 py-2 rounded-lg font-semibold hover:shadow-lg transition-all"
+          >
+            Add Crop
+          </button>
+        </form>
+      )}
+
       {crops.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <p>No crops tracked yet</p>
@@ -336,9 +713,20 @@ function CropsTab({ crops, landId, onUpdate }) {
             <div key={crop.id} className="p-4 bg-green-50 rounded-lg border border-green-200">
               <div className="flex items-center justify-between mb-3">
                 <h5 className="text-lg font-bold text-gray-800">{crop.crop_name}</h5>
-                <span className="px-3 py-1 bg-green-200 text-green-800 rounded-full text-sm font-semibold">
-                  {crop.actual_harvest_date ? 'Harvested' : 'Growing'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 bg-green-200 text-green-800 rounded-full text-sm font-semibold">
+                    {crop.actual_harvest_date ? 'Harvested' : 'Growing'}
+                  </span>
+                  <button
+                    onClick={() => handleDelete(crop.id)}
+                    className="text-red-600 hover:text-red-700 p-2"
+                    title="Delete crop"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
