@@ -3,12 +3,14 @@ import axios from 'axios';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSubscription } from '../context/SubscriptionContext.jsx';
+import { useNavigate } from 'react-router-dom';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function Payments() {
   const { user } = useAuth();
   const { tier, isPro, refreshSubscription } = useSubscription();
+  const navigate = useNavigate();
   const [amount, setAmount] = useState('');
   const [ref, setRef] = useState('');
   const [status, setStatus] = useState('');
@@ -84,6 +86,34 @@ export default function Payments() {
         </div>
       </div>
 
+      {/* Pro Member Access Card */}
+      {isPro() && (
+        <div className="mb-6 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-2xl shadow-xl p-6 text-white animate-fadeIn">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold mb-1">🎉 You're a Pro Member!</h3>
+                <p className="text-white/80">Access all premium features including Land Management</p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/dashboard/land-management')}
+              className="bg-white text-purple-600 px-6 py-3 rounded-lg font-bold hover:shadow-2xl transform hover:scale-105 transition-all flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              Go to Land Management
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Donation Card */}
         <div className="bg-white rounded-2xl shadow-xl p-6 hover-lift border-2 border-transparent hover:border-green-200 transition-all">
@@ -139,7 +169,7 @@ export default function Payments() {
               </svg>
             </div>
             <h3 className="text-2xl font-bold mb-2">Pro Plan</h3>
-            <div className="text-4xl font-bold mb-2">KES 2,999<span className="text-lg font-normal"> one-time</span></div>
+            <div className="text-4xl font-bold mb-2">KES 20<span className="text-lg font-normal"> one-time</span></div>
             <p className="text-white/80">Unlock premium features forever</p>
           </div>
           

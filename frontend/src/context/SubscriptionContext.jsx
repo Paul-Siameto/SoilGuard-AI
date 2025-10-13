@@ -25,13 +25,22 @@ export function SubscriptionProvider({ children }) {
 
   const fetchSubscription = async () => {
     try {
+      console.log('🔍 Fetching subscription for user:', user.id);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('subscription_tier, subscription_date')
         .eq('id', user.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error fetching subscription:', error);
+        console.error('❌ Error details:', JSON.stringify(error, null, 2));
+        throw error;
+      }
+
+      console.log('✅ Subscription data received:', data);
+      console.log('📊 Subscription tier:', data?.subscription_tier);
 
       setSubscription({
         tier: data?.subscription_tier || 'free',
@@ -39,7 +48,7 @@ export function SubscriptionProvider({ children }) {
         loading: false
       });
     } catch (error) {
-      console.error('Error fetching subscription:', error);
+      console.error('❌ Error fetching subscription:', error);
       setSubscription({ tier: 'free', loading: false });
     }
   };

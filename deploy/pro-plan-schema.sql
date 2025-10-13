@@ -5,6 +5,22 @@ ADD COLUMN IF NOT EXISTS subscription_tier TEXT DEFAULT 'free' CHECK (subscripti
 ALTER TABLE profiles 
 ADD COLUMN IF NOT EXISTS subscription_date TIMESTAMPTZ;
 
+-- Enable RLS on profiles table (if not already enabled)
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist to avoid conflicts
+DROP POLICY IF EXISTS "Users can view their own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can update their own profile" ON profiles;
+
+-- Create RLS policies for profiles table
+CREATE POLICY "Users can view their own profile"
+  ON profiles FOR SELECT
+  USING (auth.uid() = id);
+
+CREATE POLICY "Users can update their own profile"
+  ON profiles FOR UPDATE
+  USING (auth.uid() = id);
+
 -- Update existing payments table or create if not exists
 DO $$ 
 BEGIN
@@ -73,6 +89,20 @@ ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE land_images ENABLE ROW LEVEL SECURITY;
 ALTER TABLE land_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE crop_tracking ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies to avoid conflicts
+DROP POLICY IF EXISTS "Users can view their own payments" ON payments;
+DROP POLICY IF EXISTS "Users can insert their own payments" ON payments;
+DROP POLICY IF EXISTS "Users can view their own land images" ON land_images;
+DROP POLICY IF EXISTS "Users can insert their own land images" ON land_images;
+DROP POLICY IF EXISTS "Users can delete their own land images" ON land_images;
+DROP POLICY IF EXISTS "Users can view their own land documents" ON land_documents;
+DROP POLICY IF EXISTS "Users can insert their own land documents" ON land_documents;
+DROP POLICY IF EXISTS "Users can delete their own land documents" ON land_documents;
+DROP POLICY IF EXISTS "Users can view their own crop tracking" ON crop_tracking;
+DROP POLICY IF EXISTS "Users can insert their own crop tracking" ON crop_tracking;
+DROP POLICY IF EXISTS "Users can update their own crop tracking" ON crop_tracking;
+DROP POLICY IF EXISTS "Users can delete their own crop tracking" ON crop_tracking;
 
 -- RLS Policies for payments
 CREATE POLICY "Users can view their own payments"
