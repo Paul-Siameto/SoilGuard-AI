@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 export default function Signup() {
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -19,7 +19,7 @@ export default function Signup() {
       password,
       options: {
         data: {
-          username: username
+          full_name: fullName
         }
       }
     });
@@ -33,7 +33,11 @@ export default function Signup() {
       // Insert profile row (user is now authenticated)
       const { error: profErr } = await supabase
         .from('profiles')
-        .insert([{ id: user.id, username, email }]);
+        .insert([{ 
+          id: user.id, 
+          email,
+          full_name: fullName 
+        }]);
       if (profErr) return setError(profErr.message);
       
       navigate('/dashboard');
@@ -68,9 +72,10 @@ export default function Signup() {
           <div className="relative">
             <input 
               className="w-full border-2 border-gray-200 rounded-lg p-3 pl-10 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all" 
-              placeholder="Username" 
-              value={username} 
-              onChange={(e)=>setUsername(e.target.value)} 
+              placeholder="Full Name" 
+              value={fullName} 
+              onChange={(e)=>setFullName(e.target.value)}
+              required
             />
             <svg className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
