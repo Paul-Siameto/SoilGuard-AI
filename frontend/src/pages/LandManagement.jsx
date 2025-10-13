@@ -105,7 +105,7 @@ export default function LandManagement() {
                   </div>
                   <div className="flex-1">
                     <p className="font-semibold text-gray-800">
-                      {land.latitude.toFixed(4)}, {land.longitude.toFixed(4)}
+                      {land.latitude ? land.latitude.toFixed(4) : 'N/A'}, {land.longitude ? land.longitude.toFixed(4) : 'N/A'}
                     </p>
                     <p className="text-sm text-gray-500">
                       {new Date(land.created_at).toLocaleDateString()}
@@ -195,7 +195,7 @@ function LandDetails({ land, onUpdate }) {
       <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-6">
         <h3 className="text-2xl font-bold mb-2">Land Details</h3>
         <p className="text-white/80">
-          📍 {land.latitude.toFixed(6)}, {land.longitude.toFixed(6)}
+          📍 {land.latitude ? land.latitude.toFixed(6) : 'N/A'}, {land.longitude ? land.longitude.toFixed(6) : 'N/A'}
         </p>
       </div>
 
