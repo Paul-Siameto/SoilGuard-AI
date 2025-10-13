@@ -45,24 +45,41 @@ export default function Payments() {
   const verify = async () => {
     if (!ref) return;
     try {
+      console.log('🔍 Verifying payment with reference:', ref);
       const { data: sess } = await supabase.auth.getSession();
       const accessToken = sess?.session?.access_token;
       const { data } = await axios.get(`${API}/api/payments/verify/${ref}`, {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
       });
+      console.log('✅ Payment verification response:', data);
       setStatus(data.status);
       
       // Refresh subscription status if payment was successful
       if (data.status === 'success') {
+        console.log('🎯 Payment successful! Payment type:', data.payment_type);
+        console.log('🔄 Refreshing subscription status...');
+        
+        // Wait a bit for backend to update the profile
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         await refreshSubscription();
-        alert('🎉 Congratulations! You are now a Pro member! Refresh the page to access Pro features.');
-        // Reload page after 2 seconds
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
+        console.log('✅ Subscription refreshed');
+        
+        // Check if upgrade was for Pro plan
+        if (data.payment_type === 'pro_upgrade') {
+          alert('🎉 Congratulations! You are now a Pro member! The page will reload to show your new features.');
+          // Reload page after 2 seconds
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+        } else {
+          alert('✅ Payment successful! Thank you for your support.');
+        }
+      } else {
+        alert('❌ Payment was not successful. Please try again.');
       }
     } catch (e) {
-      console.error('Verification error:', e);
+      console.error('❌ Verification error:', e);
       alert('Verification failed. Please try again.');
     }
   };

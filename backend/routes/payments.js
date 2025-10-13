@@ -15,7 +15,7 @@ router.post('/initiate', requireAuth, async (req, res) => {
   const userId = req.user.id;
 
   // For Pro upgrade, set fixed amount
-  const finalAmount = type === 'pro' ? 2999 : amount;
+  const finalAmount = type === 'pro' ? 20 : amount;
   const paymentType = type === 'pro' ? 'pro_upgrade' : 'donation';
 
   // Create pending payment row
@@ -80,16 +80,24 @@ router.get('/verify/:ref', requireAuth, async (req, res) => {
     
     // If Pro upgrade, update user's subscription
     if (payment?.payment_type === 'pro_upgrade') {
-      await supabaseServer
+      console.log('🎯 [MOCK] Upgrading user to Pro:', req.user.id);
+      const { data: profileUpdate, error: profileError } = await supabaseServer
         .from('profiles')
         .update({ 
           subscription_tier: 'pro',
           subscription_date: new Date().toISOString()
         })
-        .eq('id', req.user.id);
+        .eq('id', req.user.id)
+        .select();
+      
+      if (profileError) {
+        console.error('❌ [MOCK] Error updating profile:', profileError);
+      } else {
+        console.log('✅ [MOCK] Profile updated successfully:', profileUpdate);
+      }
     }
     
-    return res.json({ status: 'success', reference: ref, mock: true });
+    return res.json({ status: 'success', reference: ref, mock: true, payment_type: payment?.payment_type });
   }
 
   try {
@@ -108,16 +116,24 @@ router.get('/verify/:ref', requireAuth, async (req, res) => {
     
     // If Pro upgrade and successful, update user's subscription
     if (status === 'success' && payment?.payment_type === 'pro_upgrade') {
-      await supabaseServer
+      console.log('🎯 Upgrading user to Pro:', req.user.id);
+      const { data: profileUpdate, error: profileError } = await supabaseServer
         .from('profiles')
         .update({ 
           subscription_tier: 'pro',
           subscription_date: new Date().toISOString()
         })
-        .eq('id', req.user.id);
+        .eq('id', req.user.id)
+        .select();
+      
+      if (profileError) {
+        console.error('❌ Error updating profile:', profileError);
+      } else {
+        console.log('✅ Profile updated successfully:', profileUpdate);
+      }
     }
     
-    res.json({ status, reference: ref });
+    res.json({ status, reference: ref, payment_type: payment?.payment_type });
   } catch (e) {
     console.error('Paystack verify error', e?.response?.data || e.message);
     res.status(400).json({ error: 'Verification failed' });
@@ -151,13 +167,21 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     
     // If Pro upgrade and successful, update user's subscription
     if (status === 'success' && payment?.payment_type === 'pro_upgrade' && userId) {
-      await supabaseServer
+      console.log('🎯 [WEBHOOK] Upgrading user to Pro:', userId);
+      const { data: profileUpdate, error: profileError } = await supabaseServer
         .from('profiles')
         .update({ 
           subscription_tier: 'pro',
           subscription_date: new Date().toISOString()
         })
-        .eq('id', userId);
+        .eq('id', userId)
+        .select();
+      
+      if (profileError) {
+        console.error('❌ [WEBHOOK] Error updating profile:', profileError);
+      } else {
+        console.log('✅ [WEBHOOK] Profile updated successfully:', profileUpdate);
+      }
     }
   }
   res.status(200).send('ok');

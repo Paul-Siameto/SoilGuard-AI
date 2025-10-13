@@ -134,7 +134,7 @@ export default function Assistant() {
             onClick={() => navigate('/dashboard/payments')}
             className="gradient-green text-white px-8 py-3 rounded-lg font-bold hover:shadow-2xl transform hover:scale-105 transition-all"
           >
-            Upgrade to Pro - KES 2,999
+            Upgrade to Pro - KES 20
           </button>
         </div>
       </div>
