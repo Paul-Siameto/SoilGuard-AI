@@ -15,7 +15,7 @@ router.post('/initiate', requireAuth, async (req, res) => {
   const userId = req.user.id;
 
   // For Pro upgrade, set fixed amount
-  const finalAmount = type === 'pro' ? 20 : amount;
+  const finalAmount = type === 'pro' ? 1 : amount;
   const paymentType = type === 'pro' ? 'pro_upgrade' : 'donation';
 
   // Create pending payment row

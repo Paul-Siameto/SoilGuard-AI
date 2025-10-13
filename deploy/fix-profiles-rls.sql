@@ -1,15 +1,28 @@
--- Fix profiles RLS policies to allow signup
+-- Fix profiles RLS policies to allow signup and trigger-based profile creation
 -- Run this in Supabase SQL Editor
 
--- Drop the old policy if it exists
-drop policy if exists "profiles_owner" on profiles;
+-- Drop old policies if they exist
+DROP POLICY IF EXISTS "profiles_owner" ON profiles;
+DROP POLICY IF EXISTS "profiles_insert_own" ON profiles;
+DROP POLICY IF EXISTS "profiles_select_own" ON profiles;
+DROP POLICY IF EXISTS "profiles_update_own" ON profiles;
 
--- Create separate policies for insert, select, and update
-create policy "profiles_insert_own" on profiles
-  for insert with check (auth.uid() = id);
+-- Allow INSERT for authenticated users OR when auth.uid() matches
+-- This allows both manual inserts and trigger-based inserts
+CREATE POLICY "profiles_insert_own" ON profiles
+  FOR INSERT 
+  WITH CHECK (
+    auth.uid() = id OR 
+    auth.uid() IS NULL  -- Allow trigger to insert (no auth context)
+  );
 
-create policy "profiles_select_own" on profiles
-  for select using (auth.uid() = id);
+-- Allow users to view their own profile
+CREATE POLICY "profiles_select_own" ON profiles
+  FOR SELECT 
+  USING (auth.uid() = id);
 
-create policy "profiles_update_own" on profiles
-  for update using (auth.uid() = id) with check (auth.uid() = id);
+-- Allow users to update their own profile
+CREATE POLICY "profiles_update_own" ON profiles
+  FOR UPDATE 
+  USING (auth.uid() = id) 
+  WITH CHECK (auth.uid() = id);

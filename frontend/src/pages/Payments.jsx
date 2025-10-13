@@ -22,8 +22,12 @@ export default function Payments() {
     }
     
     try {
+      console.log('🔍 Initiating payment...', { amount, type });
       const { data: sess } = await supabase.auth.getSession();
       const accessToken = sess?.session?.access_token;
+      console.log('🔑 Access token present:', !!accessToken);
+      console.log('🌐 API URL:', `${API}/api/payments/initiate`);
+      
       const { data } = await axios.post(
         `${API}/api/payments/initiate`,
         { amount, type },
@@ -31,14 +35,22 @@ export default function Payments() {
           headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
         }
       );
+      
+      console.log('✅ Payment initiation response:', data);
+      
       if (data.authorization_url) {
+        console.log('🔗 Redirecting to Paystack:', data.authorization_url);
         window.location.href = data.authorization_url;
       } else if (data.mock) {
+        console.log('🧪 Mock mode - Reference:', data.reference);
         setRef(data.reference);
         setStatus('Pending (mock)');
       }
     } catch (e) {
-      alert('Failed to initiate payment');
+      console.error('❌ Payment initiation error:', e);
+      console.error('❌ Error response:', e.response?.data);
+      console.error('❌ Error message:', e.message);
+      alert('Failed to initiate payment: ' + (e.response?.data?.error || e.message));
     }
   };
 
@@ -48,6 +60,8 @@ export default function Payments() {
       console.log('🔍 Verifying payment with reference:', ref);
       const { data: sess } = await supabase.auth.getSession();
       const accessToken = sess?.session?.access_token;
+      console.log('🔑 Access token present:', !!accessToken);
+      
       const { data } = await axios.get(`${API}/api/payments/verify/${ref}`, {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
       });
@@ -57,16 +71,32 @@ export default function Payments() {
       // Refresh subscription status if payment was successful
       if (data.status === 'success') {
         console.log('🎯 Payment successful! Payment type:', data.payment_type);
-        console.log('🔄 Refreshing subscription status...');
-        
-        // Wait a bit for backend to update the profile
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        await refreshSubscription();
-        console.log('✅ Subscription refreshed');
         
         // Check if upgrade was for Pro plan
         if (data.payment_type === 'pro_upgrade') {
+          console.log('🔄 Pro upgrade detected! Refreshing subscription...');
+          
+          // Wait for backend to update the profile
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // Refresh subscription multiple times to ensure it updates
+          for (let i = 0; i < 3; i++) {
+            console.log(`🔄 Refresh attempt ${i + 1}/3...`);
+            await refreshSubscription();
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+          
+          console.log('✅ Subscription refresh complete');
+          
+          // Check current subscription status
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('subscription_tier')
+            .eq('id', sess.session.user.id)
+            .single();
+          
+          console.log('📊 Current subscription tier:', profile?.subscription_tier);
+          
           alert('🎉 Congratulations! You are now a Pro member! The page will reload to show your new features.');
           // Reload page after 2 seconds
           setTimeout(() => {
@@ -80,6 +110,7 @@ export default function Payments() {
       }
     } catch (e) {
       console.error('❌ Verification error:', e);
+      console.error('❌ Error details:', e.response?.data || e.message);
       alert('Verification failed. Please try again.');
     }
   };
@@ -186,7 +217,7 @@ export default function Payments() {
               </svg>
             </div>
             <h3 className="text-2xl font-bold mb-2">Pro Plan</h3>
-            <div className="text-4xl font-bold mb-2">KES 20<span className="text-lg font-normal"> one-time</span></div>
+            <div className="text-4xl font-bold mb-2">KES 1<span className="text-lg font-normal"> one-time</span></div>
             <p className="text-white/80">Unlock premium features forever</p>
           </div>
           

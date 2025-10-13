@@ -8,10 +8,12 @@ export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleSignup = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     
     // Sign up with metadata
     const { data, error } = await supabase.auth.signUp({
@@ -29,21 +31,20 @@ export default function Signup() {
     const user = data.user;
     const session = data.session;
     
-    if (user && session) {
-      // Insert profile row (user is now authenticated)
-      const { error: profErr } = await supabase
-        .from('profiles')
-        .insert([{ 
-          id: user.id, 
-          email,
-          full_name: fullName 
-        }]);
-      if (profErr) return setError(profErr.message);
-      
+    // Check if email confirmation is required
+    if (user && !session) {
+      // Email confirmation is enabled - show success message
+      // Note: Profile is automatically created by database trigger
+      setSuccess('✅ Account created! Please check your email to confirm your account before logging in.');
+      // Clear form
+      setFullName('');
+      setEmail('');
+      setPassword('');
+    } else if (user && session) {
+      // Auto-login enabled (no email confirmation)
+      // Note: Profile is automatically created by database trigger
+      // Just redirect to dashboard
       navigate('/dashboard');
-    } else {
-      // Email confirmation required
-      setError('Please check your email to confirm your account.');
     }
   };
 
@@ -65,6 +66,23 @@ export default function Signup() {
         {error && (
           <div className="text-red-600 text-sm mb-4 p-3 bg-red-50 rounded-lg border border-red-200 animate-fadeIn">
             {error}
+          </div>
+        )}
+        
+        {success && (
+          <div className="text-green-700 text-sm mb-4 p-4 bg-green-50 rounded-lg border border-green-200 animate-fadeIn">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="font-semibold mb-1">Account Created Successfully!</p>
+                <p className="text-sm">{success}</p>
+                <p className="text-sm mt-2">
+                  After confirming, <Link to="/login" className="text-green-600 font-semibold hover:underline">click here to login</Link>.
+                </p>
+              </div>
+            </div>
           </div>
         )}
         

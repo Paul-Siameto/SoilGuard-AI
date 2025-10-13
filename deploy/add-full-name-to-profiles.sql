@@ -8,3 +8,4 @@ ADD COLUMN IF NOT EXISTS full_name TEXT;
 UPDATE profiles 
 SET full_name = username 
 WHERE full_name IS NULL AND username IS NOT NULL;
+
