@@ -140,51 +140,60 @@ router.get('/verify/:ref', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/payments/webhook -> Paystack webhook
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  const secret = process.env.PAYSTACK_SECRET_KEY;
-  if (!secret) return res.status(200).send('ok'); // ignore in mock mode
+  try {
+    const secret = process.env.PAYSTACK_SECRET_KEY;
+    if (!secret) return res.status(200).send('ok'); // mock mode
 
-  const signature = req.headers['x-paystack-signature'];
-  const hash = crypto
-    .createHmac('sha512', secret)
-    .update(req.body)
-    .digest('hex');
-  if (hash !== signature) return res.status(401).send('Invalid signature');
+    const signature = req.headers['x-paystack-signature'];
+    const hash = crypto
+      .createHmac('sha512', secret)
+      .update(req.body)
+      .digest('hex');
 
-  const event = JSON.parse(req.body.toString());
-  const ref = event?.data?.reference;
-  const status = event?.data?.status;
-  const userId = event?.data?.metadata?.user_id;
+    if (hash !== signature) {
+      console.warn('Invalid Paystack signature');
+      return res.status(401).send('Invalid signature');
+    }
 
-  if (ref && status) {
-    const { data: payment } = await supabaseServer
-      .from('payments')
-      .update({ payment_status: status })
-      .eq('payment_reference', ref)
-      .select()
-      .single();
-    
-    // If Pro upgrade and successful, update user's subscription
-    if (status === 'success' && payment?.payment_type === 'pro_upgrade' && userId) {
-      console.log('🎯 [WEBHOOK] Upgrading user to Pro:', userId);
-      const { data: profileUpdate, error: profileError } = await supabaseServer
-        .from('profiles')
-        .update({ 
-          subscription_tier: 'pro',
-          subscription_date: new Date().toISOString()
-        })
-        .eq('id', userId)
-        .select();
-      
-      if (profileError) {
-        console.error('❌ [WEBHOOK] Error updating profile:', profileError);
-      } else {
-        console.log('✅ [WEBHOOK] Profile updated successfully:', profileUpdate);
+    // ✅ Respond first to avoid timeout
+    res.status(200).send('ok');
+
+    // Process webhook data in the background
+    const event = JSON.parse(req.body.toString());
+    const ref = event?.data?.reference;
+    const status = event?.data?.status;
+    const userId = event?.data?.metadata?.user_id;
+
+    if (ref && status) {
+      const { data: payment } = await supabaseServer
+        .from('payments')
+        .update({ payment_status: status })
+        .eq('payment_reference', ref)
+        .select()
+        .single();
+
+      if (status === 'success' && payment?.payment_type === 'pro_upgrade' && userId) {
+        console.log('🎯 [WEBHOOK] Upgrading user to Pro:', userId);
+        const { error: profileError } = await supabaseServer
+          .from('profiles')
+          .update({
+            subscription_tier: 'pro',
+            subscription_date: new Date().toISOString(),
+          })
+          .eq('id', userId);
+
+        if (profileError) {
+          console.error('❌ [WEBHOOK] Error updating profile:', profileError);
+        } else {
+          console.log('✅ [WEBHOOK] Profile upgraded successfully');
+        }
       }
     }
+  } catch (e) {
+    console.error('Webhook handler error:', e);
+    if (!res.headersSent) res.status(200).send('ok'); // never timeout
   }
-  res.status(200).send('ok');
 });
 
 export default router;
